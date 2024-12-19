@@ -8,6 +8,7 @@
 #include "mytype32.h"
 #include "portdef.h"
 #include "proc.h"
+#include "updateweb/updateweb.h"
 #include <esp_task_wdt.h>
 
 // #define SERIAL_DEBUG
@@ -209,6 +210,7 @@ void waterlevel_init(void)
 
   delay(100);
   pinMode(STLED,OUTPUT);
+  pinMode(UPDATE_PIN, INPUT_PULLUP);
   pinMode(DIPSW2_PIN,INPUT);
   pinMode(DIPSW1_PIN,INPUT);
 
@@ -222,8 +224,9 @@ void waterlevel_init(void)
   Serial.printf("Free heap: %d", ESP.getFreeHeap());
   Serial.printf("Total PSRAM: %d", ESP.getPsramSize());
   Serial.printf("Free PSRAM: %d", ESP.getFreePsram());
-#endif  
+#endif
 
+  check_update();
 
   himpellive.stringid = 12;
 

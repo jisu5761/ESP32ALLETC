@@ -1,6 +1,8 @@
 #ifndef   __PORTDEF_H__
 #define   __PORTDEF_H__
 
+#define UPDATE_PIN            0
+
 #define DIPSW2_PIN            12
 #define DIPSW1_PIN            13
 
