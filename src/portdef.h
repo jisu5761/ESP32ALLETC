@@ -6,8 +6,8 @@
 
 #define STLED                 21
 
-#define U1_TX                 17
-#define U1_RX                 18
+#define U1_TX                 18
+#define U1_RX                 17
 
 #define SOFT_TX               15
 #define SOFT_RX               16

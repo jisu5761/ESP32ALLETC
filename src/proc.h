@@ -6,6 +6,8 @@
 //#define	VER_INFO						  2//      for (int i = 0; i < 12; i ++)        slaveset.s[oid].STARTVOLTAGE = 0;
 #define	VER_INFO						  3     //psramdisk
 
+#define	ESP32ALLETC_ID        1
+
 #define	MAGIC_NUM						0x5763
 
 
@@ -30,7 +32,7 @@
 #define SLAVEBUFFSIZE     2048
 #define SLAVEBUFFHALF     (SLAVEBUFFSIZE / 2)
 #define SLAVEBUFFMASK     (SLAVEBUFFSIZE - 1)
-#define RECORDSIZE        sizeof(SLAVERECORD)
+#define RECORDSIZE        sizeof(HIMPERINFO)
 #define SwapTwoBytes(data) \
 ( (((data) >> 8) & 0x00FF) | (((data) << 8) & 0xFF00) ) 
 
@@ -56,257 +58,33 @@ typedef union{
 
 typedef struct{
 	uint8_t stx;
-	uint8_t buf[12];
+	uint8_t setflag;
+	uint8_t autobypass;
+	uint8_t volume;
+	uint8_t const1;
+	uint8_t dumy1[5];
+	uint8_t const2;
+	uint8_t dumy2[2];
 	uint8_t bcc;
   uint8_t etx;
+}HIMPERCMD;
+
+typedef union{
+  HIMPERCMD   s;
+	uint8_t		    _b[15];
+} UHIMPERCMD;
+
+typedef struct{
+  uint16_t onoff;
+	uint16_t flowmode;
+	uint16_t flowlevel;
+	uint16_t buf[13];
 }HIMPERINFO;
 
 typedef union{
   HIMPERINFO   s;
-	uint8_t		    _b[15];
+	uint8_t		    _b[32];
 } UHIMPERINFO;
-
-
-typedef struct{
-	uint8_t stx;
-	uint8_t buf[12];
-	uint8_t bcc;
-  uint8_t etx;
-}STRINGINFO;
-
-typedef struct{
-	uint32_t			epoch;  
-	STRINGINFO		s[2];
-  uint8_t		 slaveid;
-  uint8_t		 ver;
-}SLAVERECORD;
-
-typedef union{
-  SLAVERECORD   s;
-	uint8_t		    _b[RECORDSIZE];
-}USLAVERECORD;
-
-
-typedef struct
-{
-  uint32_t sync;
-  uint8_t stx;
-  uint8_t lng;
-  uint8_t address;
-  uint8_t cmd;
-  uint16_t STARTVOLTAGE;
-  uint16_t STOPVOLTAGE;
-  uint16_t OVEROUTVOLTAGE;
-  uint16_t VOLTAGECORRECTRATIOCH1;
-  uint16_t OVERCURRENT;
-  uint16_t LIMITCURRENT;
-  uint16_t BYPASSCURRENT;
-  uint16_t CURRENTCORRECTRATIOCH1;
-  uint16_t ZEROCURRENTLEVEL;
-  uint16_t TEMPZONE;
-  uint16_t INITDELAYTIME;
-  uint16_t SWUNITPULSETIME;
-  uint16_t SINGLEBLOCKTIME;
-  uint16_t SINGLEUNITDUTY;
-  uint16_t STARTDURATION;
-  uint16_t MPPTCMDSTATUS;
-  uint16_t SINGLERUNTIME;
-  uint16_t SMPPTUNITDUTY;
-  uint16_t SMPPTDUTYINCTIME;
-  uint16_t SMPPTPOWERMARGIN;
-  uint16_t VOLTAGECORRECTRATIOCH2;
-  uint16_t CURRENTCORRECTRATIOCH2;
-  uint16_t WORKINGCURRENTLIMIT;
-  uint16_t CH1DACRATIO;
-  uint16_t CURRHIGHMPPT;
-  uint16_t GFDVOLTAGE;
-  uint16_t DUTYLIMIT;
-  short TEMPLIMIT; //????
-  uint16_t CH2DACRATIO;
-  uint8_t SINGLEMULTI;
-  uint16_t UPCURRENT;
-  uint16_t DOWNCURRENT; 
-  uint16_t ZEROCURRENTLED;
-  uint16_t SCANTIME;
-  uint16_t SMPPTPOWERCOMPTIME;
-  uint16_t SMPPTDELAYTIME;
-  uint8_t etx;
-  uint8_t crc;
-}ST_PARA;
-typedef union{
-  ST_PARA s;
-  uint8_t _b[81];
-} UST_PARA;
-
-typedef struct{
-  uint16_t STARTVOLTAGE;
-  uint16_t STOPVOLTAGE;
-  uint16_t OVEROUTVOLTAGE;
-  uint16_t VOLTAGECORRECTRATIOCH1;
-  uint16_t OVERCURRENT;
-  uint16_t LIMITCURRENT;
-  uint16_t BYPASSCURRENT;
-  uint16_t CURRENTCORRECTRATIOCH1;
-  uint16_t ZEROCURRENTLEVEL;
-  uint16_t TEMPZONE;
-  uint16_t INITDELAYTIME;
-  uint16_t SWUNITPULSETIME;
-  uint16_t SINGLEBLOCKTIME;
-  uint16_t SINGLEUNITDUTY;
-  uint16_t STARTDURATION;
-  uint16_t MPPTCMDSTATUS;
-  uint16_t SINGLERUNTIME;
-  uint16_t SMPPTUNITDUTY;
-  uint16_t SMPPTDUTYINCTIME;
-  uint16_t SMPPTPOWERMARGIN;
-  uint16_t VOLTAGECORRECTRATIOCH2;
-  uint16_t CURRENTCORRECTRATIOCH2;
-  uint16_t WORKINGCURRENTLIMIT;
-  uint16_t CH1DACRATIO;
-  uint16_t CURRHIGHMPPT;
-  uint16_t GFDVOLTAGE;
-  uint16_t DUTYLIMIT;
-  short TEMPLIMIT;
-  uint16_t CH2DACRATIO;
-  uint8_t SINGLEMULTI;
-  uint16_t UPCURRENT;
-  uint16_t DOWNCURRENT;
-  uint16_t CURRENTLEDOFFLEVEL;  
-  uint16_t SCANTIME;  
-  uint16_t SMPPTPOWERCOMPTIME;  
-  uint16_t SMPPTDELAYTIME;
-}STRINGSET;
-
-typedef struct{
-	STRINGSET		s[12];
-	uint8_t				slaveid;
-}SLAVERECORDSET;
-
-
-#define   SUSETCOM_SIZE        77
-#define   SUSETCRC_SIZE        (SUSETCOM_SIZE - 1)
-typedef struct{
-  uint8_t stx;
-  uint8_t address;
-  uint8_t lng;
-  uint8_t cmd;
-  uint16_t STARTVOLTAGE;
-  uint16_t STOPVOLTAGE;
-  uint16_t OVEROUTVOLTAGE;
-  uint16_t VOLTAGECORRECTRATIOCH1;
-  uint16_t OVERCURRENT;
-  uint16_t LIMITCURRENT;
-  uint16_t BYPASSCURRENT;
-  uint16_t CURRENTCORRECTRATIOCH1;
-  uint16_t ZEROCURRENTLEVEL;
-  uint16_t TEMPZONE;
-  uint16_t INITDELAYTIME;
-  uint16_t SWUNITPULSETIME;
-  uint16_t SINGLEBLOCKTIME;
-  uint16_t SINGLEUNITDUTY;
-  uint16_t STARTDURATION;
-  uint16_t MPPTCMDSTATUS;
-  uint16_t SINGLERUNTIME;
-  uint16_t SMPPTUNITDUTY;
-  uint16_t SMPPTDUTYINCTIME;
-  uint16_t SMPPTPOWERMARGIN;
-  uint16_t VOLTAGECORRECTRATIOCH2;
-  uint16_t CURRENTCORRECTRATIOCH2;
-  uint16_t WORKINGCURRENTLIMIT;
-  uint16_t CH1DACRATIO;
-  uint16_t CURRHIGHMPPT;
-  uint16_t GFDVOLTAGE;
-  uint16_t DUTYLIMIT;
-  short TEMPLIMIT;
-  uint16_t CH2DACRATIO;
-  uint8_t SINGLEMULTI;
-  uint16_t UPCURRENT;
-  uint16_t DOWNCURRENT;
-  uint16_t CURRENTLEDOFFLEVEL;  
-  uint16_t SCANTIME;  
-  uint16_t SMPPTPOWERCOMPTIME;  
-  uint16_t SMPPTDELAYTIME;
-  uint8_t etx;
-  uint8_t crc;
-}SUMCUSET;
-
-typedef union{
-  SUMCUSET    s;
-  uint8_t   _b[SUSETCOM_SIZE];
-}USUMCUSET;
-
-
-#define   SUDATACOM_SIZE        56
-#define   SUDATACRC_SIZE        (SUDATACOM_SIZE - 1)
-typedef struct{
-  uint8_t   stx;
-  uint8_t   lng;
-  uint8_t   address;
-  uint8_t   cmd;
-  uint16_t  VI1_VALUE;
-  uint16_t  VO1_VALUE;
-  uint16_t  IO1_VALUE;
-  uint16_t  PWO1_OUTVALUE;
-  uint16_t  PWM1_VALUE;
-  char      TEMP_1VALUE;
-  uint16_t  VI2_VALUE;
-  uint16_t  VO2_VALUE; 
-  uint16_t  IO2_VALUE;  
-  uint16_t  PWO2_OUTVALUE;
-  uint16_t  PWM2_VALUE;
-  char      TEMP_2VALUE;
-  uint32_t  CURRENT_HIGH;
-  uint32_t  PW_TOTALVALUE;
-  uint16_t  CH2_MODE;
-  uint16_t  CH02_GFD_PINVALUE;
-  uint16_t  CH1_MODE;
-  uint16_t  CH01_GFD_PINVALUE;
-  uint16_t  error_flag1;
-  uint8_t   SETSTATUS;
-  uint16_t  GFD[2][2];    //CH1 P,M Ch2 P,M		
-  uint8_t   dumy;
-  uint8_t   etx;
-  uint8_t   crc;
-}SUDATAMCUCOM;
-  
-typedef union{
-  SUDATAMCUCOM    s;
-  uint8_t   _b[SUDATACOM_SIZE];
-}USUDATAMCUCOM;
-
-typedef struct{
-  uint32_t    header;  
-  uint8_t    	stx;
-  uint8_t    	lng;
-	uint8_t    	id;
-	uint8_t    	cmd;
-	uint8_t    	etx;
-	uint8_t    	bcc;
-}SLAVEREQ;
-
-typedef union {
-	SLAVEREQ		s;
-	uint8_t			_b[10];
-}USLAVEREQ;
-
-
-typedef struct
-{
-  uint32_t sync;
-  uint8_t stx;
-  uint8_t lng;
-  uint8_t address;
-  uint8_t cmd;
-  uint8_t paracode;
-  uint32_t value;
-  uint8_t etx;
-  uint8_t crc;
-}SU_SET;
-typedef union
-{
-  SU_SET  s;
-  uint8_t _b[15];   //FF AA FF AA 02 0A 03 A1 00 00 00 00 00 03 5D 
-}USU_SET;
 
 
 typedef struct{
@@ -323,12 +101,7 @@ typedef struct{
 	uint8_t     retrycnt;
 	uint8_t     s_mode;
 	uint8_t     a_mode;
-	uint8_t     resendcount;
-	uint8_t			reqid;
-	uint16_t		interval;
-	String      blemsg;
-	String      readmsg;
-  uint8_t     rcvcount;
+	uint8_t     rcbuf[15];
 	unsigned long    epoch;
 }HIMPELLIVE;
 
@@ -434,6 +207,7 @@ extern  UBIT ctrl_flag;
 #define fselsave_flag      	    ctrl_flag._b.bit17
 #define rselsave_flag      	    ctrl_flag._b.bit18
 #define epochset_flag           ctrl_flag._b.bit19
+#define rccmd_flag           		ctrl_flag._b.bit20
 
 extern  UBIT ctrl_flag1; 
 
@@ -467,4 +241,5 @@ void broad_message(void);
 uint16_t calc_wakeup_time(void);
 void control_report(void);
 void send_himpercommand(void);
+void send_meshstatus(void);
 #endif

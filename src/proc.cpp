@@ -10,19 +10,18 @@
 #include "proc.h"
 #include <esp_task_wdt.h>
 
+// #define SERIAL_DEBUG
+
 
 UBIT ctrl_flag;
 UBIT ctrl_flag1;
 ESP32Time rtc(0);  // offset in seconds GMT+1
 long epochTime;
 
-UHIMPERINFO uh;
+UHIMPERCMD uhc;
+UHIMPERCMD uhs;
+UHIMPERINFO uhi;
 
-SLAVERECORDSET slaveget;
-SLAVERECORDSET slaveset;
-// SLAVERECORD slaverecord[256];
-SLAVERECORD slaverecordunit;
-USLAVEREQ   uslavereq;
 HIMPELLIVE   himpellive;
 UMASTERSET   uslaveset;
 uint8_t mpptstatus[12];
@@ -72,45 +71,6 @@ String inttohexstring(uint16_t num,uint8_t lng)
   return str;
 }
 
-// String getReadings () 
-// {
-//   JSONVar jsonReadings;
-//   jsonReadings["type"] = 0;
-//   jsonReadings["epoch"] = (int)slaverecord[himpellive.r_recordpos].epoch;
-//   jsonReadings["id"] = himpellive.slaveid;
-//   String str = "";
-//   for(int i = 0; i < 12;  i++)
-//   {
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1vin,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1vout,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1iout,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1pwm,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1gfdp / 100,2);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1gfdm / 100,2);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1tmp,2);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch1mode,2);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2vin,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2vout,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2iout,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2pwm,4);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2gfdp / 100,2);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2gfdm / 100,2);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2tmp,2);
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].ch2mode,2);    
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].currenthigh,4);    
-//     str+= inttohexstring(slaverecord[himpellive.r_recordpos].s[i].setstatus,2);    
-//   }
-
-//   jsonReadings["msg"] = str;
-
-//   // for(int i = 0; i < 12; i ++)
-//   //   Serial.printf( "i=%d v = %d\r\n",i, slaverecord[himpellive.r_recordpos].s[i].ch1vin);
-
-//   jsonReadings["ver"] = VER_INFO;  
-//   readings = JSON.stringify(jsonReadings);
-//   return readings;
-// }
-
 constexpr char hexmap[]={'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 
 String hexChar(unsigned char srcData)
@@ -120,16 +80,25 @@ String hexChar(unsigned char srcData)
   destBuf += String(hexmap[srcData & 0x0F]); 
   return destBuf;
 }
-
-void sendMessage(USLAVERECORD usla) 
+//-----------------------------------------------------------------------------
+void strToBin(byte bin[], char const str[]) 
+{
+  for (size_t i = 0; str[i] and str[i + 1]; i += 2) {
+    char slice[] = {0, 0, 0};
+    strncpy(slice, str + i, 2);
+    bin[i / 2] = strtol(slice, nullptr, 16);
+  }
+}
+//-----------------------------------------------------------------------------
+void sendMessage(UHIMPERINFO uhi) 
 {
   String hexstring = "";
   JSONVar jsonReadings;
-  jsonReadings["type"] = 0;
-  //jsonReadings["epoch"] = (int)slaverecord[himpellive.r_recordpos].epoch;
+  jsonReadings["id"] = ESP32ALLETC_ID;
+  //jsonReadings["epoch"] = (int)slaverecord[slavelive.r_recordpos].epoch;
   for (int i = 0; i < RECORDSIZE;i ++)
-    hexstring += String(hexChar(usla._b[i]));
-  jsonReadings["msg"] = hexstring;
+    hexstring += String(hexChar(uhi._b[i]));
+  jsonReadings["hex"] = hexstring;
   hexstring = JSON.stringify(jsonReadings);
   
   mesh.sendSingle(himpellive.rootid,hexstring);
@@ -138,104 +107,34 @@ void sendMessage(USLAVERECORD usla)
 #endif  
 }
 
-String getSetReadings () 
-{
-  JSONVar jsonReadings;
-  jsonReadings["type"] = 1;
-  jsonReadings["mnode"] = himpellive.masterid;
-  jsonReadings["sid"] = himpellive.slaveid;
-  jsonReadings["epoch"] = rtc.getEpoch();
-
-  for(int i = 0; i < 12;  i++)
-  {
-    jsonReadings["data"][i]["oid"] = (i + 1);    
-    jsonReadings["data"][i]["instart_volt"] = slaveset.s[i].STARTVOLTAGE;
-    jsonReadings["data"][i]["instop_volt"] = slaveset.s[i].STOPVOLTAGE;
-    jsonReadings["data"][i]["outlim_vol"] = slaveset.s[i].OVEROUTVOLTAGE;
-    jsonReadings["data"][i]["overstp_cur"] = slaveset.s[i].OVERCURRENT;
-    jsonReadings["data"][i]["bypass_cur"] = slaveset.s[i].BYPASSCURRENT;
-    jsonReadings["data"][i]["outlim_cur"] = slaveset.s[i].LIMITCURRENT;
-    jsonReadings["data"][i]["lim_temp"] = slaveset.s[i].TEMPLIMIT;
-    jsonReadings["data"][i]["revise_volt_ch1"] = slaveset.s[i].VOLTAGECORRECTRATIOCH1;
-    jsonReadings["data"][i]["revise_cur_ch1"] = slaveset.s[i].CURRENTCORRECTRATIOCH1;    
-    jsonReadings["data"][i]["revise_volt_ch2"] = slaveset.s[i].VOLTAGECORRECTRATIOCH2;
-    jsonReadings["data"][i]["revise_cur_ch2"] = slaveset.s[i].CURRENTCORRECTRATIOCH2;
-    jsonReadings["data"][i]["strtdly_time"] = slaveset.s[i].INITDELAYTIME;
-    jsonReadings["data"][i]["swpuls_width"] = slaveset.s[i].SWUNITPULSETIME;
-    jsonReadings["data"][i]["duty_maxlim"] = slaveset.s[i].DUTYLIMIT;
-    jsonReadings["data"][i]["singlestp_time"] = slaveset.s[i].SINGLEBLOCKTIME;
-    jsonReadings["data"][i]["single_dutywidth"] = slaveset.s[i].SINGLEUNITDUTY;
-    jsonReadings["data"][i]["singleon_time"] = slaveset.s[i].SINGLERUNTIME;
-    jsonReadings["data"][i]["smpptdly_time"] = slaveset.s[i].SMPPTDELAYTIME;
-    jsonReadings["data"][i]["smpptduty_wigth"] = slaveset.s[i].SMPPTUNITDUTY;
-    jsonReadings["data"][i]["smpptduty_uptime"] = slaveset.s[i].SMPPTDUTYINCTIME;
-    jsonReadings["data"][i]["smppt_powergap"] = slaveset.s[i].SMPPTPOWERMARGIN;
-    jsonReadings["data"][i]["smppt_pwr_comtime"] = slaveset.s[i].SMPPTPOWERCOMPTIME;
-    jsonReadings["data"][i]["mpptlim_cur"] = slaveset.s[i].WORKINGCURRENTLIMIT;
-    jsonReadings["data"][i]["mpptoff_cur"] = slaveset.s[i].CURRENTLEDOFFLEVEL;
-    jsonReadings["data"][i]["gfd_vol"] = slaveset.s[i].GFDVOLTAGE;
-    jsonReadings["data"][i]["mppton_cur"] = slaveset.s[i].CURRHIGHMPPT;
-    jsonReadings["data"][i]["ch1_da_revise"] = slaveset.s[i].CH1DACRATIO;
-    jsonReadings["data"][i]["ch2_da_revise"] = slaveset.s[i].CH2DACRATIO;
-    jsonReadings["data"][i]["temp_width"] = slaveset.s[i].TEMPZONE;
-    jsonReadings["data"][i]["scan_time"] = slaveset.s[i].SCANTIME;
-    jsonReadings["data"][i]["up_current"] = slaveset.s[i].UPCURRENT;
-    jsonReadings["data"][i]["down_current"] = slaveset.s[i].DOWNCURRENT;
-    jsonReadings["data"][i]["optimal_pwmtime"] = slaveset.s[i].STARTDURATION;
-    readings = JSON.stringify(jsonReadings);
-  }
-  // Serial.println(readings);
-  return readings;
-}
-void sendSetMessage() {
-  himpellive.readmsg = getSetReadings();
-  // Serial.printf("root id = %lu\r\n",himpellive.rootid);
-  // Serial.printf("Sec = %d\r\n",rtc.getSecond());
-  mesh.sendSingle(himpellive.rootid,himpellive.readmsg);
-#ifdef MESH_DEBUG    
-  Serial.println(himpellive.readmsg);
-#endif  
-
-}
 
 // Needed for painless library
 void receivedCallback( uint32_t from, String &msg ) {
+  static UHIMPERINFO olduhi;
+  int oid;
+  String hexstr;
+#ifdef MESH_DEBUG    
   Serial.printf("Received from %u msg=%s\n", from, msg.c_str());
-  int tmpint,oid;
+#endif  
+
   JSONVar myObject = JSON.parse(msg.c_str());
+  oid = myObject["id"];
+  if (oid != ESP32ALLETC_ID) return;
+  hexstr = (const char *)myObject["hex"];
 
+  strToBin(uhi._b, hexstr.c_str());
 
-
-  int ack = myObject["err"];
-  // int id = myObject["id"];
-  // epochTime = myObject["epoch"];
-  // Serial.printf("epochTime = %d\r\n", epochTime);  
-  // if(epochTime > 1685712654)    //2023???? June 2???? Friday PM 1:30:54
-  //   rtc.setTime(epochTime);
-
-
-//   if(id != himpellive.slaveid)
-//   {
-// #ifdef CONSOLE_DEBUG      
-//     Serial.printf("id mismatch id = %d set id=%s\r\n", id,himpellive.slaveid);  
-// #endif  
-//     return;
-//   }
-//   else
-//     Serial.println("id matched");
-
-
-  // Serial.printf("ack = %d\r\n",ack);
-
-  // if(!epochset_flag)
+  for (int i = 0; i < sizeof(HIMPERCMD);i ++)
   {
-    epochTime = myObject["epoch"];
-    if(epochTime > 1685712654)    //2023???? June 2???? Friday PM 1:30:54
+    if(olduhi._b[i] != uhi._b[i])
     {
-      rtc.setTime(epochTime);
-      epochset_flag = 1;
-    }          
+      memcpy(olduhi._b, uhi._b, sizeof(HIMPERCMD));
+      if (uhi.s.onoff == 0) uhi.s.flowlevel = 0;
+      himpellive.s_mode = 1;  // ON
+      break;
+    }
   }
+
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -313,8 +212,10 @@ void waterlevel_init(void)
   pinMode(DIPSW2_PIN,INPUT);
   pinMode(DIPSW1_PIN,INPUT);
 
-  uh.s.stx = 0xAA;
-  uh.s.etx = 0xEE;
+  uhc.s.stx = 0xAA;
+  uhc.s.etx = 0xEE;
+  uhc.s.const1 = 1;
+  uhc.s.const2 = 1;
 
 #ifdef UART_DEBUG  
   Serial.printf("Total heap: %d", ESP.getHeapSize());
@@ -323,10 +224,7 @@ void waterlevel_init(void)
   Serial.printf("Free PSRAM: %d", ESP.getFreePsram());
 #endif  
 
-  uslavereq.s.header = 0xAAFFAAFF;
-  uslavereq.s.stx = 0x02;
-  uslavereq.s.lng = 0x05;
-  uslavereq.s.etx = 0x03;
+
   himpellive.stringid = 12;
 
   EEPROM.begin(100); //EEPROM?�� 메모�?? 주소 �?? 100까�?? ?��?��
@@ -352,7 +250,7 @@ void waterlevel_init(void)
 
   // mesh.init( MESH_PREFIX, MESH_PASSWORD, MESH_PORT, WIFI_AP_STA, TC_CH);
 
-  delay(2000);
+  delay(100);
   for (int i = 0; i < 10; i ++)
   {
     read_key();
@@ -386,60 +284,11 @@ uint8_t calculator_crc(uint8_t lng,uint8_t *buf)
 
   return crc;
 }
-
-//-----------------------------------------------------------------------------
-void scan_SUR26A(void)    //150msec  FF AA FF AA 02 05 01 1F 03 D4 
-{
-
-
-}
-//-----------------------------------------------------------------------------
-void control_report(void)   //100msec
-{
-  static uint32_t oldepoch;
-  static  uint16_t  wcnt;
-  String hexstring = "";
-  SLAVERECORD sla;
-  USLAVERECORD usla;
-  if(rootconnect_flag)
-  {
-    if(himpellive.f_recordpos != himpellive.r_recordpos)
-    {
-      if(!msgsended_flag)
-      {
-
-        msgsended_flag = 1;
-        himpellive.resendcount = 0;
-
-        Serial.printf("er = %d f = %d r = %d\r\n",usla.s.epoch,himpellive.f_recordpos,himpellive.r_recordpos);
-
-        sendMessage(usla);
-      }    
-    }
-    if(himpellive.slaveid < 1) return;
-
-    if ((rtc.getEpoch() - oldepoch) < 3) return;
-    oldepoch = rtc.getEpoch();
-    if(himpellive.scan_mode == 2)
-    {
-      // if(himpellive.rcvcount)
-      {
-        himpellive.rcvcount = 0;
-
-        Serial.printf("ef = %d f = %d r = %d\r\n",oldepoch,himpellive.f_recordpos,himpellive.r_recordpos);
-
-      }
-    }
-      
-    // Serial.printf("epoch = %d \r\n", rtc.getEpoch());
-  }
-}
 //-----------------------------------------------------------------------------
 void read_key(void)   //2msec
 {
   static  uint8_t s1oncount,s1offcount,s2oncount,s2offcount;
   
-
   if(!DIPSW1_IN)
   {
     if(++ s1oncount > ONCOUNT)
@@ -550,8 +399,9 @@ void analysys_data(uint8_t *rxdata)
 //-----------------------------------------------------------------------------
 void check_serial(void)
 {
-  static  uint8_t lng,rlng,rxdata[256];
-
+  static uint8_t lng,rlng,rxdata[256];
+  static uint8_t h_mode,hbcc,hbuf[32],hrlng;
+  static uint8_t rc_mode,rcbcc,rcbuf[32],rcrlng;
 
   mesh.update();
   if(Serial.available())
@@ -559,6 +409,7 @@ void check_serial(void)
     char c = Serial.read();
     if (c == '1') himpellive.s_mode = 1;
     else if (c == '2') himpellive.s_mode = 2;
+    else if (c == '3') himpellive.s_mode = 3;    
     else if (c == ' ') himpellive.s_mode = 0;
 
     StaticJsonDocument<1024> doc;    
@@ -592,15 +443,107 @@ void check_serial(void)
   {
     char c = himpelSerial.read();
     rempteSerial.write(c);
-    Serial.write(c);
+#ifdef SERIAL_DEBUG
+    Serial.printf("%02X ",c);
+#endif    
+    hbcc ^= c;
+    switch(h_mode)
+    {
+      case 0:
+        if (c == 0xAA) 
+        {
+#ifdef SERIAL_DEBUG          
+          Serial.printf("[HP] ");
+#endif          
+          h_mode++;
+          hbcc = c;
+          hrlng = 0;
+          hbuf[hrlng++] = c;
+        }
+        break;
+
+      case  1:
+        hbuf[hrlng++] = c;
+        if (hrlng >= 13) h_mode++;
+        break;
+
+      case  2:
+        if (hbcc == 0) h_mode++;
+        else
+          h_mode = 0;
+        break;
+
+      case 3:
+        h_mode = 0;
+        if(c == 0xEE)
+        {
+#ifdef SERIAL_DEBUG
+          Serial.println("OK");          
+#endif          
+          for (int i = 0; i < 15; i++) 
+            uhs._b[i] = hbuf[i];
+
+          digitalWrite(STLED,!digitalRead(STLED));        
+        }
+        break;
+
+      default:
+        h_mode = 0;
+        break;
+    }
   }
   if(rempteSerial.available())
   {
     char c = rempteSerial.read();
-    himpelSerial.write(c);
-    Serial.write(c);
-  }
+#ifdef SERIAL_DEBUG
+    Serial.printf("%02X ",c);
+#endif    
+    rcbcc ^= c;
+    switch(rc_mode)
+    {
+      case 0:
+        if (c == 0xAA) 
+        {
+#ifdef SERIAL_DEBUG          
+          Serial.printf("[RC] ");
+#endif          
+          rc_mode++;
+          rcbcc = c;
+          rcrlng = 0;
+          himpellive.rcbuf[rcrlng++] = c;
+        }
+        break;
 
+      case  1:
+        himpellive.rcbuf[rcrlng++] = c;
+        if (rcrlng >= 13) rc_mode++;
+        break;
+
+      case  2:
+        himpellive.rcbuf[rcrlng++] = c;
+        if (rcbcc == 0) rc_mode++;
+        else
+          rc_mode = 0;
+        break;
+
+      case 3:
+        rc_mode = 0;
+        himpellive.rcbuf[rcrlng++] = c;
+        if(c == 0xEE)
+        {
+#ifdef SERIAL_DEBUG
+          Serial.println();          
+#endif
+        if(dip2sw_flag)
+          himpelSerial.write(himpellive.rcbuf, rcrlng);
+        }
+        break;
+
+      default:
+        rc_mode = 0;
+        break;
+    }
+  }
 }
 //-----------------------------------------------------------------------------
 void misslogger_write(void)
@@ -660,28 +603,32 @@ const uint8_t himpeloff[15]     = { 0xAA,0x01,0x00,0x00,0x01,0x00,0x00,0x00,0x00
 const uint8_t himpelon[15]      = { 0xAA,0x01,0x00,0x01,0x01,0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0xAA,0xEE};
 const uint8_t himpelauto[15]    = { 0xAA,0x01,0x01,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0xAA,0xEE};
 const uint8_t himpelbypass[15]  = { 0xAA,0x01,0x02,0x01,0x03,0x00,0x00,0x00,0x00,0x00,0x01,0x00,0x00,0xAA,0xEE};
-//-----------------------------------------------------------------------------
-void himpel_off(void) 
-{ 
-  uh.s.buf[0] = 1; 
-  uh.s.buf[1] = 0; 
-  uh.s.buf[2] = 0; 
-  uh.s.buf[3] = 1; 
-}
-//-----------------------------------------------------------------------------
-void himpel_on(void) 
-{ 
-  uh.s.buf[0] = 1; 
-  uh.s.buf[1] = 0; 
-  uh.s.buf[2] = 1; 
-  uh.s.buf[3] = 1; 
-}
-//-----------------------------------------------------------------------------
-void send_himpercommand(void) //500msec
+void sethimpelcommand(void)
 {
-  static uint8_t wcnt;
-  if (++wcnt < 2) return;
-  wcnt = 0;
+  uhc.s.setflag = 1;  
+  uhc.s.autobypass = uhi.s.flowmode;
+  if(uhi.s.flowmode == 2) uhc.s.volume = 3;
+  else if(uhi.s.onoff == 1)
+    uhc.s.volume = uhi.s.flowlevel;
+  else
+    uhc.s.volume = 0;
+  uhc.s.bcc = make_bcc(13, uhc._b);
+
+#ifdef SERIAL_DEBUG
+  Serial.print("[S] ");
+  for (int i = 0; i < 15; i ++) 
+  {
+    Serial.printf("%02X ", uhc._b[i]);
+  }
+  Serial.println();
+#endif  
+}
+//-----------------------------------------------------------------------------
+void send_himpercommand(void) //1000msec
+{
+  // return;
+
+  if (dip2sw_flag) return;
 
   switch(himpellive.s_mode)
   {
@@ -690,15 +637,41 @@ void send_himpercommand(void) //500msec
       break;
 
 
-    case  1:    //ON CMD
-      himpelSerial.write(himpelon, 15);
+    case  1:    //CMD
+      sethimpelcommand();
+      himpelSerial.write(uhc._b, 15);
       himpellive.s_mode = 0;
       break;
 
-    case  2:    //OFF CMD
+    case  2:    
       himpelSerial.write(himpeloff, 15);
       himpellive.s_mode = 0;
       break;
 
+    // case  3:    //AUTO CMD
+    //   himpelSerial.write(himpelauto, 15);
+    //   himpellive.s_mode = 0;
+    //   break;
+
+  }
+}
+//-----------------------------------------------------------------------------
+void send_meshstatus(void)  //1000msec
+{
+
+  if(rootconnect_flag)
+  {
+
+    if (uhs.s.volume) uhi.s.onoff = 1;
+    else              uhi.s.onoff = 0;    
+    uhi.s.flowmode = uhs.s.autobypass;
+    // if(uhi.s.onoff)
+    //   uhi.s.flowlevel = uhs.s.volume + 1;
+    // else
+    
+    uhi.s.flowlevel = uhs.s.volume;
+
+    if (uhs.s.autobypass) uhi.s.onoff = 1;
+    sendMessage(uhi);
   }
 }
