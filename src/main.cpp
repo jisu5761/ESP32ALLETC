@@ -43,7 +43,7 @@ void loop() {
   {
     t500ms = currentMillis;
 
-    digitalWrite(STLED,!digitalRead(STLED));
+    digitalWrite(STLED_PIN,!digitalRead(STLED_PIN));
   }  
   if((currentMillis - t1000ms) > 999)
   {

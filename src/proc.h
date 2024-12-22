@@ -1,6 +1,7 @@
 #ifndef __PROC_H__
 #define __PROC_H__
 
+
 //#define	VER_INFO						1					//   Duration average
 //#define	VER_INFO						2//   memset(&slaveset.s[i], 0x00, sizeof(STRINGSET));
 //#define	VER_INFO						  2//      for (int i = 0; i < 12; i ++)        slaveset.s[oid].STARTVOLTAGE = 0;

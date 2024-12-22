@@ -6,7 +6,7 @@
 #define DIPSW2_PIN            12
 #define DIPSW1_PIN            13
 
-#define STLED                 21
+#define STLED_PIN             21
 
 #define U1_TX                 18
 #define U1_RX                 17

@@ -8,8 +8,8 @@
 #include "mytype32.h"
 #include "portdef.h"
 #include "proc.h"
-#include "updateweb/updateweb.h"
 #include <esp_task_wdt.h>
+#include "updateweb/updateweb.h"
 
 // #define SERIAL_DEBUG
 
@@ -209,10 +209,12 @@ void waterlevel_init(void)
   rempteSerial.begin(1200, SWSERIAL_8N1, SOFT_RX, SOFT_TX, true);
 
   delay(100);
-  pinMode(STLED,OUTPUT);
+  pinMode(STLED_PIN,OUTPUT);
   pinMode(UPDATE_PIN, INPUT_PULLUP);
   pinMode(DIPSW2_PIN,INPUT);
   pinMode(DIPSW1_PIN,INPUT);
+
+  check_update();
 
   uhc.s.stx = 0xAA;
   uhc.s.etx = 0xEE;
@@ -226,7 +228,7 @@ void waterlevel_init(void)
   Serial.printf("Free PSRAM: %d", ESP.getFreePsram());
 #endif
 
-  check_update();
+  // check_update();
 
   himpellive.stringid = 12;
 
@@ -272,8 +274,7 @@ void waterlevel_init(void)
   mesh.setContainsRoot(true);
 
   esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
-  esp_task_wdt_add(NULL); //add current thread to WDT watch  
-
+  esp_task_wdt_add(NULL); //add current thread to WDT watch
 
 }
 //------------------------------------------------------------------------------
@@ -486,7 +487,7 @@ void check_serial(void)
           for (int i = 0; i < 15; i++) 
             uhs._b[i] = hbuf[i];
 
-          digitalWrite(STLED,!digitalRead(STLED));        
+          digitalWrite(STLED_PIN,!digitalRead(STLED_PIN));        
         }
         break;
 
@@ -629,6 +630,7 @@ void sethimpelcommand(void)
 //-----------------------------------------------------------------------------
 void send_himpercommand(void) //1000msec
 {
+  Serial.println(himpellive.s_mode);
   // return;
 
   if (dip2sw_flag) return;
@@ -652,9 +654,17 @@ void send_himpercommand(void) //1000msec
       break;
 
     // case  3:    //AUTO CMD
-    //   himpelSerial.write(himpelauto, 15);
-    //   himpellive.s_mode = 0;
+    //   if(uhi.s.onoff)
+    //   {
+    //     himpellive.s_mode = 0;
+    //     break;
+    //   }
+    //   himpelSerial.write(himpelon, 15);
     //   break;
+    default:
+      himpellive.s_mode = 0;
+      break;
+
 
   }
 }
