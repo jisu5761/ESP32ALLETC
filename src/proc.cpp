@@ -22,6 +22,7 @@ long epochTime;
 UHIMPERCMD uhc;
 UHIMPERCMD uhs;
 UHIMPERINFO uhi;
+UHIMPERINFO uho;
 
 HIMPELLIVE   himpellive;
 UMASTERSET   uslaveset;
@@ -104,6 +105,7 @@ void sendMessage(UHIMPERINFO uhi)
   
   mesh.sendSingle(himpellive.rootid,hexstring);
 #ifdef MESH_DEBUG  
+  Serial.print("Send ");
   Serial.println(hexstring);
 #endif  
 }
@@ -232,7 +234,7 @@ void waterlevel_init(void)
 
   himpellive.stringid = 12;
 
-  EEPROM.begin(100); //EEPROM?�� 메모�?? 주소 �?? 100까�?? ?��?��
+  EEPROM.begin(100); //EEPROM?�� 메모�?? 주소 �?? 100까�?? ?��?��
 
   for(int i = 0; i < 32; i ++)
   {
@@ -450,6 +452,7 @@ void check_serial(void)
 #ifdef SERIAL_DEBUG
     Serial.printf("%02X ",c);
 #endif    
+    //return;
     hbcc ^= c;
     switch(h_mode)
     {
@@ -498,10 +501,13 @@ void check_serial(void)
   }
   if(rempteSerial.available())
   {
+    return;
     char c = rempteSerial.read();
+    // himpelSerial.write(c);
 #ifdef SERIAL_DEBUG
     Serial.printf("%02X ",c);
-#endif    
+#endif
+    return;    
     rcbcc ^= c;
     switch(rc_mode)
     {
@@ -630,7 +636,7 @@ void sethimpelcommand(void)
 //-----------------------------------------------------------------------------
 void send_himpercommand(void) //1000msec
 {
-  Serial.println(himpellive.s_mode);
+  // Serial.println(himpellive.s_mode);
   // return;
 
   if (dip2sw_flag) return;
@@ -653,14 +659,14 @@ void send_himpercommand(void) //1000msec
       himpellive.s_mode = 0;
       break;
 
-    // case  3:    //AUTO CMD
-    //   if(uhi.s.onoff)
-    //   {
-    //     himpellive.s_mode = 0;
-    //     break;
-    //   }
-    //   himpelSerial.write(himpelon, 15);
-    //   break;
+    case  3:    //AUTO CMD
+      if(uhi.s.onoff)
+      {
+        himpellive.s_mode = 0;
+        break;
+      }
+      himpelSerial.write(himpelon, 15);
+      break;
     default:
       himpellive.s_mode = 0;
       break;
@@ -675,16 +681,16 @@ void send_meshstatus(void)  //1000msec
   if(rootconnect_flag)
   {
 
-    if (uhs.s.volume) uhi.s.onoff = 1;
-    else              uhi.s.onoff = 0;    
-    uhi.s.flowmode = uhs.s.autobypass;
-    // if(uhi.s.onoff)
-    //   uhi.s.flowlevel = uhs.s.volume + 1;
+    if (uhs.s.volume) uho.s.onoff = 1;
+    else              uho.s.onoff = 0;    
+    uho.s.flowmode = uhs.s.autobypass;
+    // if(uho.s.onoff)
+    //   uho.s.flowlevel = uhs.s.volume + 1;
     // else
     
-    uhi.s.flowlevel = uhs.s.volume;
+    uho.s.flowlevel = uhs.s.volume;
 
-    if (uhs.s.autobypass) uhi.s.onoff = 1;
-    sendMessage(uhi);
+    if (uhs.s.autobypass) uho.s.onoff = 1;
+    sendMessage(uho);
   }
 }
