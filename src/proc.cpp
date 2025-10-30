@@ -265,15 +265,15 @@ void waterlevel_init(void)
   }
   Serial.printf(" m =%d s=%d\r\n", himpellive.masterid, himpellive.slaveid);
 
-  mesh.init( MESH_PREFIX + String(himpellive.masterid), MESH_PASSWORD, MESH_PORT, WIFI_AP_STA );
-  mesh.onReceive(&receivedCallback);
-  mesh.onNewConnection(&newConnectionCallback);
-  mesh.onChangedConnections(&changedConnectionCallback);
-  mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);  
-  //userScheduler.addTask( taskSendMessage );
-  // This node and all other nodes should ideally know the mesh contains a root,
-  // so call this on all nodes
-  mesh.setContainsRoot(true);
+  // mesh.init( MESH_PREFIX + String(himpellive.masterid), MESH_PASSWORD, MESH_PORT, WIFI_AP_STA );
+  // mesh.onReceive(&receivedCallback);
+  // mesh.onNewConnection(&newConnectionCallback);
+  // mesh.onChangedConnections(&changedConnectionCallback);
+  // mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);  
+  // //userScheduler.addTask( taskSendMessage );
+  // // This node and all other nodes should ideally know the mesh contains a root,
+  // // so call this on all nodes
+  // mesh.setContainsRoot(true);
 
   esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
   esp_task_wdt_add(NULL); //add current thread to WDT watch
@@ -409,7 +409,7 @@ void check_serial(void)
   static uint8_t h_mode,hbcc,hbuf[32],hrlng;
   static uint8_t rc_mode,rcbcc,rcbuf[32],rcrlng;
 
-  mesh.update();
+  // mesh.update();
   if(Serial.available())
   {
     char c = Serial.read();
@@ -639,8 +639,8 @@ void send_himpercommand(void) //1000msec
   // Serial.println(himpellive.s_mode);
   // return;
 
-  if (dip2sw_flag) return;
-
+  // if (dip2sw_flag) return;
+  himpellive.s_mode = 3;
   switch(himpellive.s_mode)
   {
     case  0:
@@ -660,12 +660,12 @@ void send_himpercommand(void) //1000msec
       break;
 
     case  3:    //AUTO CMD
-      if(uhi.s.onoff)
-      {
-        himpellive.s_mode = 0;
-        break;
-      }
-      himpelSerial.write(himpelon, 15);
+      // if(uhi.s.onoff)
+      // {
+      //   himpellive.s_mode = 0;
+      //   break;
+      // }
+      himpelSerial.write(himpelauto, 15);
       break;
     default:
       himpellive.s_mode = 0;

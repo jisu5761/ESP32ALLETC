@@ -49,7 +49,7 @@ void loop() {
   {
     t1000ms = currentMillis;
     send_himpercommand();
-    send_meshstatus();
+    // send_meshstatus();
   }    
 }
 
