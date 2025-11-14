@@ -11,7 +11,8 @@
 #include "portdef.h"
 #include "proc.h"
 #include <esp_task_wdt.h>
-
+#include "modbusslave.h"
+#include "updateweb/updateweb.h"
 
 
 void setup() {
@@ -24,6 +25,7 @@ void loop() {
   static  uint32_t  t2ms,t100ms,t200ms,t500ms,t1000ms;
   uint32_t  currentMillis;
   check_serial();
+  sensorhub_poll();
   currentMillis = millis();
   if((currentMillis - t2ms) > 9)
   {
@@ -33,6 +35,7 @@ void loop() {
   if((currentMillis - t100ms) > 99)
   {
     t100ms = currentMillis;
+    check_modbus();
   }
   if((currentMillis - t200ms) > 149)
   {

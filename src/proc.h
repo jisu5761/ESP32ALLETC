@@ -98,6 +98,8 @@ typedef struct{
   uint16_t r_recordpos;
   uint16_t wakeupgap;
   uint16_t    seqnum;
+	uint16_t pollcount;
+	uint16_t oldpollcount;
   uint8_t     adpos;
 	uint8_t     retrycnt;
 	uint8_t     s_mode;
@@ -106,32 +108,51 @@ typedef struct{
 	unsigned long    epoch;
 }HIMPELLIVE;
 
-#define BUF_SIZE    8
-#define MAX_SIZE		(BUF_SIZE - 1)
-typedef struct{
-  float       temp[BUF_SIZE];
-  float       angleAcX[BUF_SIZE];
-  float       angleAcY[BUF_SIZE];
-  float       distance[BUF_SIZE];
-}TC2023BUF;
-
-typedef struct{
-	uint8_t		stx;
-	uint8_t		lng;
-	uint8_t		cmd;
-	uint16_t	devid;
-	uint8_t		dumy[24];
-	uint8_t		ver;
-	uint8_t		etx;
-	uint8_t		crc;
-}TX2023COM;
-
-typedef union{
-	TX2023COM		s;
-	uint8_t			_b[32];
-}UTX2023COM;
 
 
+typedef struct 
+{
+  uint16_t aironoff;   //himpel
+  uint16_t airstatus;  
+  uint16_t airvolume;  
+  uint16_t airbuf[13]; 
+
+  uint16_t lampin;      //smart light   
+  uint16_t lampout;        
+  uint16_t lampcomcount;        
+  uint16_t lampbuf[13];
+
+  uint16_t ch1_shuntvoltage;  //usb charger
+  uint16_t ch1_busvoltage;
+  uint16_t ch1_current;
+  uint16_t ch1_power;
+  uint16_t ch1_loadvoltage;
+  uint16_t ch2_shuntvoltage;
+  uint16_t ch2_busvoltage;
+  uint16_t ch2_current;
+  uint16_t ch2_power;
+  uint16_t ch2_loadvoltage;
+  uint16_t usbbuf[6];
+
+  uint16_t airConditioner_mode;    //aircon
+	uint16_t airConditioner_settemperature;
+  uint16_t airConditioner_gettemperature;
+  uint16_t airconerror;
+  uint16_t aircon_mode;
+  uint16_t aircontype;
+  uint16_t airflow;
+  uint16_t airconbuf[9];
+
+
+  uint16_t dummy[256 - 64];         
+}MESH_INFO;
+
+typedef union
+{
+  MESH_INFO s;
+  uint16_t _b[512];
+  uint16_t _wb[256];
+}UMESH_INFO;
 
 
 typedef struct{
@@ -172,6 +193,7 @@ typedef union{
 }UMASTERCOM;
 
 
+#pragma pack(pop)   /* restore original alignment from stack */
 
 
 #define	INIT_MODE							0
@@ -243,4 +265,5 @@ uint16_t calc_wakeup_time(void);
 void control_report(void);
 void send_himpercommand(void);
 void send_meshstatus(void);
+void check_modbus(void);
 #endif

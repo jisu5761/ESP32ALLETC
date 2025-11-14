@@ -9,10 +9,11 @@
 #include "portdef.h"
 #include "proc.h"
 #include <esp_task_wdt.h>
+#include "modbusslave.h"
 #include "updateweb/updateweb.h"
 
 // #define SERIAL_DEBUG
-
+//2000 Hour : clean   40000 Hour : replace  20000 Hour : heater replace
 
 UBIT ctrl_flag;
 UBIT ctrl_flag1;
@@ -24,6 +25,7 @@ UHIMPERCMD uhs;
 UHIMPERINFO uhi;
 UHIMPERINFO uho;
 
+UMESH_INFO umi;
 HIMPELLIVE   himpellive;
 UMASTERSET   uslaveset;
 uint8_t mpptstatus[12];
@@ -275,6 +277,9 @@ void waterlevel_init(void)
   // // so call this on all nodes
   // mesh.setContainsRoot(true);
 
+
+  sensorhubmodbus_init();
+
   esp_task_wdt_init(WDT_TIMEOUT, true); //enable panic so ESP32 restarts
   esp_task_wdt_add(NULL); //add current thread to WDT watch
 
@@ -345,6 +350,30 @@ uint8_t calculator_crc(uint16_t lng, uint8_t *buf)
       crc += buf[i];
 
   return crc;
+}
+
+//-----------------------------------------------------------------------------
+void check_modbus(void) //100msec
+{
+    static UHIMPERINFO olduhi;
+  if(himpellive.pollcount != himpellive.oldpollcount)
+  {
+    himpellive.oldpollcount = himpellive.pollcount;
+    digitalWrite(STLED_PIN,!digitalRead(STLED_PIN));
+    uhi.s.onoff = umi.s.aironoff;
+    uhi.s.flowmode = umi.s.airstatus;
+    uhi.s.flowlevel = umi.s.airvolume;
+    for (int i = 0; i < sizeof(HIMPERCMD);i ++)
+    {
+      if(olduhi._b[i] != uhi._b[i])
+      {
+        memcpy(olduhi._b, uhi._b, sizeof(HIMPERCMD));
+        if (uhi.s.onoff == 0) uhi.s.flowlevel = 0;
+        himpellive.s_mode = 1;  // ON
+        break;
+      }
+    }    
+  }
 }
 // Check whether write to EEPROM was successful or not with the EEPROM.commit() function.
 void eeprom_commit() {
@@ -640,7 +669,7 @@ void send_himpercommand(void) //1000msec
   // return;
 
   // if (dip2sw_flag) return;
-  himpellive.s_mode = 3;
+  // himpellive.s_mode = 3;
   switch(himpellive.s_mode)
   {
     case  0:
