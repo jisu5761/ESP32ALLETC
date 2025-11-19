@@ -18,5 +18,11 @@ void sensorhub_poll(void)
 {
   modbus.poll();
   himpellive.pollcount = modbus.getpollcount();
+  if(himpellive.oldpollcount != himpellive.pollcount)
+  {
+    himpellive.oldpollcount = himpellive.pollcount;
+    digitalWrite(STLED_PIN,!digitalRead(STLED_PIN));
+
+  }
 }
 

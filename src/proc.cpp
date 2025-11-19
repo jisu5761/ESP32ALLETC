@@ -355,25 +355,20 @@ uint8_t calculator_crc(uint16_t lng, uint8_t *buf)
 //-----------------------------------------------------------------------------
 void check_modbus(void) //100msec
 {
-    static UHIMPERINFO olduhi;
-  if(himpellive.pollcount != himpellive.oldpollcount)
+  static UHIMPERINFO olduhi;
+  uhi.s.onoff = umi.s.aironoff;
+  uhi.s.flowmode = umi.s.airstatus;
+  uhi.s.flowlevel = umi.s.airvolume;
+  for (int i = 0; i < sizeof(HIMPERCMD);i ++)
   {
-    himpellive.oldpollcount = himpellive.pollcount;
-    digitalWrite(STLED_PIN,!digitalRead(STLED_PIN));
-    uhi.s.onoff = umi.s.aironoff;
-    uhi.s.flowmode = umi.s.airstatus;
-    uhi.s.flowlevel = umi.s.airvolume;
-    for (int i = 0; i < sizeof(HIMPERCMD);i ++)
+    if(olduhi._b[i] != uhi._b[i])
     {
-      if(olduhi._b[i] != uhi._b[i])
-      {
-        memcpy(olduhi._b, uhi._b, sizeof(HIMPERCMD));
-        if (uhi.s.onoff == 0) uhi.s.flowlevel = 0;
-        himpellive.s_mode = 1;  // ON
-        break;
-      }
-    }    
-  }
+      memcpy(olduhi._b, uhi._b, sizeof(HIMPERCMD));
+      if (uhi.s.onoff == 0) uhi.s.flowlevel = 0;
+      himpellive.s_mode = 1;  // ON
+      break;
+    }
+  }    
 }
 // Check whether write to EEPROM was successful or not with the EEPROM.commit() function.
 void eeprom_commit() {
